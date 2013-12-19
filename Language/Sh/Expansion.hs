@@ -36,7 +36,7 @@ type Exp m = ReaderT (ExpansionFunctions m) m
 -- |And here's the easiest way to use them...
 get' :: Monad m => Exp m [(String,String)]
 get' = asks getAllEnv >>= lift
-get :: Monad m => String -> Exp m (Maybe String)
+get ::  (Functor m, Monad m) => String -> Exp m (Maybe String)
 get s = lookup s `fmap` get'
 set :: Monad m => String -> String -> Exp m ()
 set s v = use2 setEnv s v
@@ -174,7 +174,7 @@ expandParams = expandWith e
 
 -- crap - need to fully expand all letters...?
 
-arithExpand :: Monad m => String -> Exp m String
+arithExpand ::  (Functor m, Monad m) => String -> Exp m String
 arithExpand s = fmap show $ doMath s
 
 -- This doesn't work with ++ and -- operators.....?
@@ -221,7 +221,7 @@ setEnvW :: (Monad m,Functor m) => String -> Word -> Exp m () -- set a variable
 setEnvW s w = do v <- expandWordE w
                  set s v
 
-getEnvQC :: Monad m => Bool -> Bool -> String -> Exp m (Maybe Word)
+getEnvQC ::  (Functor m, Monad m) => Bool -> Bool -> String -> Exp m (Maybe Word)
 getEnvQC q c n = do v <- getSpecial q n
                     case v of
                       Nothing -> return Nothing
@@ -229,17 +229,17 @@ getEnvQC q c n = do v <- getSpecial q n
                                       else return $ Just []
                       Just v' -> return $ Just v'
 
-getEnvQ :: Monad m => Bool -> String -> Exp m Word
+getEnvQ ::  (Functor m, Monad m) => Bool -> String -> Exp m Word
 getEnvQ q n = fromMaybe [] `fmap` getEnvQC q False n
 
-getSpecial :: Monad m => Bool -> String -> Exp m (Maybe Word)
+getSpecial ::  (Functor m, Monad m) => Bool -> String -> Exp m (Maybe Word)
 getSpecial q "@" = getAtStar q $ (++[SplitField]) . map Literal
 getSpecial q "*" = getAtStar q $ quoteLiteral q
 getSpecial q "#" = (Just . quoteLiteral q.show.length) `fmap` pos
 getSpecial q n = fmap (quoteLiteral q) `fmap` get n
 
 -- |Helper function for 'getSpecial'.
-getAtStar :: Monad m => Bool -> (String -> Word) -> Exp m (Maybe Word)
+getAtStar ::  (Functor m, Monad m) => Bool -> (String -> Word) -> Exp m (Maybe Word)
 getAtStar q c2l = do ps <- map (quoteLiteral q) `fmap` pos
                      fs <- (c2l . take 1) `fmap` getIFS
                      return $ if null ps
@@ -248,7 +248,7 @@ getAtStar q c2l = do ps <- map (quoteLiteral q) `fmap` pos
 
 -- |Helper function for expansions...  The @Bool@ argument is for
 -- whether or not we're quoted.
-expandWith :: Monad m => (Bool -> Expansion -> Exp m Word)
+expandWith :: (Functor m, Monad m) => (Bool -> Expansion -> Exp m Word)
            -> Word -> Exp m Word
 expandWith f (Expand x:xs) = do x' <- f False x
                                 xs' <- expandWith f xs
@@ -260,7 +260,7 @@ expandWith f (x:xs) = do fmap (x:) $ expandWith f xs
 expandWith _ [] = return []
 
 -- |Use @$IFS@ to split fields.
-splitFields :: Monad m => [Word] -> Exp m [Word]
+splitFields ::  (Functor m, Monad m) => [Word] -> Exp m [Word]
 splitFields w = do ifs <- getIFS
                    let f SplitField  = True
                        f (Literal c) = c `elem` ifs
@@ -268,7 +268,7 @@ splitFields w = do ifs <- getIFS
                        split = filter (any (not . f)) . (groupBy ((==) `on` f))
                    return $ concatMap split w
 
-getIFS :: Monad m => Exp m String
+getIFS ::  (Functor m, Monad m) => Exp m String
 getIFS = fmap (fromMaybe " \t\r\n") $ get "IFS"
 
 -- |This always returns a LitWord.
