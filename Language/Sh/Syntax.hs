@@ -1,28 +1,32 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 -- |Here we define the /complete/ abstract syntax tree for
 -- simple and compound statements.
 
 module Language.Sh.Syntax where
 
+import Data.Typeable (Typeable)
+import Data.Data (Data)
+
 -- *The statement level and above
 data Command = Synchronous  AndOrList
              | Asynchronous AndOrList
-             deriving ( Show )
+             deriving ( Show, Typeable, Data )
 data AndOrList = Singleton Pipeline
                | AndOrList :&&: Pipeline
                | AndOrList :||: Pipeline
-               deriving ( Show )
+               deriving ( Show, Typeable, Data )
 data Pipeline = Pipeline [Statement] -- explicit type-level non-null?
               | BangPipeline [Statement]
-              deriving ( Show )
+              deriving ( Show, Typeable, Data)
 data Term = TWord Word
           | TRedir Redir
           | TAssignment Assignment -- internal only
-          deriving ( Show )
+          deriving ( Show, Typeable, Data )
 data Statement = Statement [Word] [Redir] [Assignment]
                | Compound CompoundStatement [Redir]
                | FunctionDefinition String CompoundStatement [Redir]
                | OrderedStatement [Term] -- internal only
-               deriving ( Show )
+               deriving ( Show, Typeable, Data )
 data CompoundStatement = For String [Word] [Command]
                        | While [Command] [Command]
                        | Until [Command] [Command]
@@ -30,14 +34,14 @@ data CompoundStatement = For String [Word] [Command]
                        | Case Word [([Word],[Command])]
                        | Subshell [Command]
                        | BraceGroup [Command]
-                       deriving ( Show )
+                       deriving ( Show, Typeable, Data )
 
 -- *The word level and below
 type Word = [Lexeme]
 data Lexeme = Literal Char | Quote Char
             | Expand Expansion | Quoted Lexeme
             | SplitField -- this one should never come from parsing
-            deriving ( Show )
+            deriving ( Show, Typeable, Data )
 
 -- data ExpansionType = SimpleExpansion | LengthExpansion
 --                    | OneParameterExpansion String Word
@@ -65,7 +69,7 @@ data Expansion = SimpleExpansion String
                | LengthExpansion String
                | CommandSub [Command]
                | Arithmetic Word
-               deriving ( Show )
+               deriving ( Show, Typeable, Data )
 data Redir = Int :> Word  -- tests show that expansions don't lose spaces
            | Int :>| Word -- i.e. $ A='abc def'
            | Int :>& Int  --      $ echo 1 > $A  # target is 'abc def'
@@ -76,9 +80,9 @@ data Redir = Int :> Word  -- tests show that expansions don't lose spaces
            | Int :<< String
            | Int :<<- String
            | Heredoc Int Bool Word -- ^filled in version...?
-           deriving ( Show )
+           deriving ( Show, Typeable, Data)
 data Assignment = String := Word
-                  deriving ( Show )
+                  deriving ( Show, Typeable, Data )
 
 --data GlobChar = Lit Char | One | Many | OneOf String | NoneOf String
 --type Glob = [GlobChar]
